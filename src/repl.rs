@@ -13,6 +13,8 @@ pub fn repl() {
 
         let mut par = Parser::new(ln);
         match par.expr() {
+
+            // on question: check if we have the requested statement along our knowledge
             ParsedStatement::Question(o) => {
                 let n = o.cnf();
                 println!("> CNF: {n}");
@@ -23,6 +25,8 @@ pub fn repl() {
                     println!("> Not satisfied!")
                 }
             },
+
+            // on axiom: compute further resolvents from the axiom and existing knowledge
             ParsedStatement::Axiom(o) => {
                 let n = o.cnf();
                 println!("> CNF: {n}");
@@ -46,7 +50,11 @@ pub fn repl() {
                     cnf.clear();
                 }
             },
+
+            // on stop: just exit
             ParsedStatement::Stop => break,
+
+            // on error: mark where the error is in the input and print the error message
             ParsedStatement::Error(msg, idx) => {
                 for _ in 0..idx {
                     print!(" ");

@@ -1,21 +1,34 @@
 use crate::stmt::Stmt;
 use crate::parser::ParseResult::*;
 
+/// Recursive-descent parser for [Stmt]s.
 pub struct Parser {
     index: usize,
     input: Vec<char>,
 }
 
 enum ParseResult<T> {
+    /// Parsed object is found and properly parsed
     Ok(T),
+
+    /// Parsed object is not found
     Absent(usize),
+
+    /// Parsed object is found but has an incorrect syntax
     Error(String, usize)
 }
 
 pub enum ParsedStatement {
+    /// An axiom was parsed: this statement must be assumed to be true.
     Axiom(Stmt),
+
+    /// A question wa parsed: we must resolve this question against the set of knowledge.
     Question(Stmt),
+
+    /// Stop signal: end the REPL.
     Stop,
+
+    /// Some error was found in the input
     Error(String, usize)
 }
 
@@ -65,12 +78,14 @@ impl Parser {
         self.index += 1;
     }
 
+    /// Skips over whitespace.
     fn ws(&mut self) {
         while self.has(' ') || self.has('\t') || self.has('\n') || self.has('\r') {
             self.shift();
         }
     }
 
+    /// Reads an expression.
     pub fn expr(&mut self) -> ParsedStatement {
         return match self.or() {
             Ok(s) => {
@@ -97,6 +112,7 @@ impl Parser {
         }
     }
 
+    /// Parses a symbol: `P` for any character P
     fn symbol(&mut self) -> ParseResult<Stmt> {
         self.ws();
         if let Some(cur) = self.cur() {
@@ -109,6 +125,7 @@ impl Parser {
         return Absent(self.index);
     }
 
+    /// Parses a not expression: `!x` for any atomic expression x
     fn not(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -127,6 +144,7 @@ impl Parser {
         };
     }
 
+    /// Parses a contradiction: `~`
     fn cont(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -140,6 +158,7 @@ impl Parser {
         return Ok(Stmt::cont())
     }
 
+    /// Parses a tautology: `*`
     fn taut(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -153,6 +172,7 @@ impl Parser {
         return Ok(Stmt::taut())
     }
     
+    /// Parses an atomic expression: `*`, `~`, `(x)`, `!a`, `P` for any expression x, any atomic expression a, any character P
     fn base(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -180,6 +200,7 @@ impl Parser {
         return Absent(self.index);
     }
 
+    /// Parses a parenthesized expression: `(x)` for any expression x
     fn par(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -209,6 +230,7 @@ impl Parser {
         return Ok(i)
     }
 
+    /// Parses an implication or bi-implication, or reverse implication: `a <- b`, `a -> b`, `a <-> b` for any atomic expression a, b
     fn implication(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -255,6 +277,7 @@ impl Parser {
         }
     }
 
+    /// Parses a conjunction: `a & b` for any implications a, b
     fn and(&mut self) -> ParseResult<Stmt> {
         self.ws();
 
@@ -284,6 +307,7 @@ impl Parser {
         return Ok(l.and(r))
     }
 
+    /// Parses a disjunction: `a | b` for any conjunctions a, b
     fn or(&mut self) -> ParseResult<Stmt> {
         self.ws();
 

@@ -2,15 +2,31 @@ use std::fmt::Display;
 
 use crate::cnf::{Cnf, Disj};
 
+/// A statement.
 #[derive(PartialEq, Eq, Clone)]
 pub enum Stmt {
+    /// The contradictory statment, i.e., "false".
     Cont,
+
+    /// The tautological statement, i.e., "true".
     Taut,
+
+    /// A basic symbol, declared by a single character.
     Symbol(char),
+
+    /// The inverse of a statement.
     Not(Box<Stmt>),
+
+    /// The conjunction of two statements.
     And(Box<Stmt>, Box<Stmt>),
+
+    /// The disjunction of two statements.
     Or(Box<Stmt>, Box<Stmt>),
+
+    /// The implication of one statement from another.
     Implies(Box<Stmt>, Box<Stmt>),
+
+    /// The equivalence (bi-implication) of two statements.
     Equiv(Box<Stmt>, Box<Stmt>)
 }
 
@@ -47,6 +63,8 @@ impl Stmt {
         return Stmt::Equiv(Box::new(self), Box::new(e));
     }
 
+    /// Extrapolation expands implications and equivalences to basic conjunctions and disjunctions.
+    /// A resulting expression does not have any implications or equivalences.
     fn extrapolate(self) -> Self {
         return match self {
             Stmt::Not(o) => Self::not((*o).extrapolate()),
@@ -61,6 +79,10 @@ impl Stmt {
         };
     }
 
+    /// Extraction of contradiction and tautology, removes contradictions and tautologies from
+    /// a statement. This can only happen after [Self::extrapolate].
+    /// A resulting expression is either [Stmt::Cont], [Stmt::Taut], or some other expression
+    /// not including contradictions or tautologies.
     fn extract_cont_taut(self) -> Self {
         return match self {
             Stmt::Cont => self,
@@ -89,6 +111,9 @@ impl Stmt {
         };
     }
 
+    /// Applies DeMorgan recursively.
+    /// A resulting expression does not have any negated conjunctions or disjunctions.
+    /// I.e. !P can exist but !(P | Q) cannot.
     fn demorgan_pos(self) -> Self {
         return match self {
             Stmt::Not(o) => (*o).demorgan_neg(),
@@ -99,6 +124,7 @@ impl Stmt {
         }
     }
 
+    /// Negates this expression by applying DeMorgan recursively. Used with [Self::demorgan_pos].
     fn demorgan_neg(self) -> Self {
         return match self {
             Stmt::Not(o) => *o,
@@ -111,6 +137,9 @@ impl Stmt {
         }
     }
 
+    /// Distributes disjunctions over conjunctions. When called repeatedly, after applying
+    /// DeMorgan, contradiction-tautology-extraction and extrapolation, the resulting expression
+    /// will eventually become conjunction-normal-form.
     fn dist_disj(self) -> Self {
         return match self {
             Stmt::Or(l, r) => {
@@ -141,6 +170,7 @@ impl Stmt {
         };
     }
 
+    /// Translates this expression to conjunctive normal form (CNF).
     fn base_cnf(self) -> Self {
         let mut e = self;
         e = e.extrapolate();
@@ -155,6 +185,7 @@ impl Stmt {
         }
     }
 
+    /// If this expression is a clause, returns a [Disj] of that clause.
     fn disj(&self) -> Option<Disj> {
         // Returns None in case of a tautology
         return match self {
@@ -177,6 +208,7 @@ impl Stmt {
         }
     }
 
+    /// Converts this expression to conjunctive normal form and returns it as a [Cnf] object.
     pub fn cnf(&self) -> Cnf {
         let mut cnf = Cnf::new();
 

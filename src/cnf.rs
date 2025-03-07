@@ -231,6 +231,8 @@ impl Display for Disj {
     }
 }
 
+/// A statement in conjunction-normal form (CNF). A [Cnf] object acts as a set of
+/// [Disj] objects.
 pub struct Cnf {
     pub terms: HashSet<Disj>
 }
